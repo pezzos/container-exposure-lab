@@ -3,13 +3,13 @@
 ## Lab Metadata
 
 - lab: `container-exposure-lab`
-- completion_status: `tested-needs-operator-dns-cleanup`
+- completion_status: `tested-partial-closed`
 - repo: `https://github.com/pezzos/container-exposure-lab`
 - owner: `pezzos`
 - local_path: `/Users/alexandrepezzotta/repos/PezzosLabs/container-exposure-lab`
 - started_at_utc: `2026-05-20T04:46:50Z`
 - production_deploy: `not-performed`
-- public_resources_open: `dns-record-needs-operator-removal`
+- public_resources_open: `none-observed-after-operator-cleanup`
 
 ## Test Matrix
 
@@ -20,7 +20,7 @@
 | Tailscale Funnel | done | Temporary public `ts.net` Funnel URL returned HTTP 200 and was closed. | none |
 | Cloudflare Named Tunnel HTTP | done | `http://container-exposure-lab.labs.projectpezzos.com/healthz` returned HTTP 200 through the named tunnel. | none for HTTP |
 | Cloudflare Named Tunnel HTTPS | done-on-first-level-hostname | Deep hostname `container-exposure-lab.labs.projectpezzos.com` failed TLS; approved retry on `container-exposure-lab.projectpezzos.com` returned HTTPS 200 with TLS verification result `0`. | none for the proved first-level hostname path |
-| DNS teardown | needs-operator-input | Tunnel was deleted, but `container-exposure-lab.projectpezzos.com` still resolves to Cloudflare edge IPs and returns Cloudflare `1033`. | Delete the DNS route in the Cloudflare dashboard/API. |
+| DNS teardown | done-after-operator-cleanup | Tunnel deletion did not remove the DNS route automatically; operator cleanup later removed the record. `dig +short container-exposure-lab.projectpezzos.com` now returns no records. | none |
 | Phone/external validation | not-run | Local curl through public URLs was performed; no separate phone/mobile vantage was used. | Test from phone or another network if this becomes a publication claim. |
 
 ## Not Completed
@@ -29,12 +29,9 @@
   the safer retry path with the first-level hostname
   `container-exposure-lab.projectpezzos.com`; that path was tested successfully over
   HTTPS.
-- DNS cleanup: `cloudflared tunnel delete -f container-exposure-lab` deleted the tunnel
-  but did not remove the proxied DNS route in this run. Minimum completion action:
-  delete the `container-exposure-lab.projectpezzos.com` DNS record in Cloudflare.
-- Phone/mobile validation: not performed. Minimum completion action: after DNS cleanup
-  and any approved rerun, test from a phone or separate network before making a
-  reader-facing claim about mobile review.
+- Phone/mobile validation: not performed. Minimum completion action: during any
+  approved rerun, test from a phone or separate network before making a reader-facing
+  claim about mobile review.
 
 ## Preflight
 
@@ -262,6 +259,8 @@
   a proxied CNAME route to
   `35d43b87-932b-4a32-8798-432c666a6e45.cfargotunnel.com` or an equivalent tunnel route
   record in the Cloudflare dashboard/API.
+- operator_cleanup_verified: `2026-05-20`; `dig +short container-exposure-lab.projectpezzos.com`
+  returned no records after manual DNS cleanup.
 - allowed_hostname: `container-exposure-lab.projectpezzos.com`
 
 ## Tailscale Funnel
@@ -301,16 +300,15 @@
   first proved HTTP on the deep hostname and then proved HTTPS on the approved
   first-level hostname `container-exposure-lab.projectpezzos.com`. The verified
   reachability evidence is local `curl` from the lab machine through public URLs, not a
-  phone, colleague-device, or separate-network test. The first-level DNS record still
-  needs operator cleanup.
+  phone, colleague-device, or separate-network test. The first-level DNS record required
+  manual cleanup after tunnel deletion, and that cleanup has now been verified.
 
 ## Open Resources
 
 - public_urls: none; the temporary Quick Tunnel URL is closed.
 - cloudflare_tunnels: none currently open; one Quick Tunnel was opened and closed.
-- dns_records: `container-exposure-lab.projectpezzos.com` still resolves to Cloudflare
-  edge IPs and needs operator removal. The earlier
-  `container-exposure-lab.labs.projectpezzos.com` record was manually deleted by
-  Alexandre before the first-level hostname retry.
+- dns_records: none observed for `container-exposure-lab.projectpezzos.com` after
+  operator cleanup. The earlier `container-exposure-lab.labs.projectpezzos.com` record
+  was manually deleted by Alexandre before the first-level hostname retry.
 - tailscale_funnel: none currently open; one Funnel was opened and closed.
 - docker_containers: none running for this lab after final `docker compose down`.

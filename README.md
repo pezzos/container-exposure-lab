@@ -16,7 +16,7 @@ This lab compares:
 
 ## Current Result
 
-Status: `tested-needs-operator-dns-cleanup`.
+Status: `tested-partial-closed`.
 
 The lab proves that this specific disposable HTTP app can be reached through all three
 tested paths from the lab machine using `curl` against public HTTPS URLs. It also proves
@@ -25,6 +25,9 @@ that the tunnels and local container can be closed cleanly after the run.
 The result is still partial as public evidence: no phone, colleague device, or separate
 network validation was performed, and no auth, reconnect, laptop sleep, or long-duration
 behavior was tested.
+
+All public tunnel, Funnel, DNS, and local container resources from the recorded run are
+now closed or removed.
 
 ## What Was Tested
 
@@ -62,7 +65,8 @@ root filesystem, drops Linux capabilities, and has `no-new-privileges`.
 - The deeper hostname `container-exposure-lab.labs.projectpezzos.com` is not a safe
   default for HTTPS unless certificate coverage is handled first.
 - `cloudflared tunnel delete -f` removed the tunnel resource in this run but did not
-  remove the proxied DNS route. DNS cleanup needs an operator action.
+  remove the proxied DNS route automatically. The DNS record was removed later by
+  operator cleanup.
 
 ## What You Must Not Conclude
 
@@ -71,8 +75,7 @@ root filesystem, drops Linux capabilities, and has `no-new-privileges`.
 - Do not treat this as evidence for production hosting.
 - Do not assume these paths are secure for private data or write-capable services.
 - Do not assume Tailscale Funnel behavior after sleep, reconnect, or long sessions.
-- Do not assume Cloudflare Named Tunnel is operationally finished until the remaining
-  DNS record has been removed.
+- Do not assume Cloudflare Named Tunnel DNS cleanup is automatic.
 
 ## Full Trace
 
@@ -101,9 +104,8 @@ docker compose down
 - Cloudflare named tunnel: deleted.
 - Local tunnel credential files created by the lab: removed.
 - Docker container: stopped and removed.
-- DNS: `container-exposure-lab.projectpezzos.com` still resolves to Cloudflare edge IPs
-  and must be deleted manually in Cloudflare before rerunning the Named Tunnel/DNS
-  branch.
+- DNS: `container-exposure-lab.projectpezzos.com` no longer resolves after operator
+  cleanup.
 
 The GitHub repo rollback command, if Alexandre explicitly approves deletion later:
 
