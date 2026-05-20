@@ -1,0 +1,12 @@
+{
+  "name": "container-exposure-lab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Disposable HTTP app for container exposure lab.",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "check:local": "./scripts/check-local.sh",
+    "scan:credentials": "./scripts/credential-scan.sh"
+  }
+}
