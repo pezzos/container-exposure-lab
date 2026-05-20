@@ -1,20 +1,91 @@
 # container-exposure-lab
 
-Disposable lab for testing temporary exposure of a minimal containerized HTTP app.
+Disposable lab for exposing one minimal containerized HTTP app through temporary public
+paths without deploying the main `projectpezzos.com` site.
 
-## Scope
+## Question
 
-- Public lab repo: `pezzos/container-exposure-lab`
-- Local app port: `127.0.0.1:18082`
-- Container port: `8080`
-- Cloudflare first path: Quick Tunnel with a temporary `trycloudflare.com` URL
-- Custom hostname tested successfully over HTTPS:
-  `container-exposure-lab.projectpezzos.com`
+Can a small local container be exposed briefly and safely enough for a Project Pezzos
+review workflow, and what does each path prove in a short run?
 
-This repo must not contain credentials, personal data, host bind mounts, projectpezzos.com
-production deploy logic, or access to the parent repository.
+This lab compares:
 
-## Local Run
+- Cloudflare Quick Tunnel with a temporary `trycloudflare.com` URL.
+- Tailscale Funnel with a temporary public `ts.net` URL.
+- Cloudflare Named Tunnel with DNS on a controlled Project Pezzos hostname.
+
+## Current Result
+
+Status: `tested-needs-operator-dns-cleanup`.
+
+The lab proves that this specific disposable HTTP app can be reached through all three
+tested paths from the lab machine using `curl` against public HTTPS URLs. It also proves
+that the tunnels and local container can be closed cleanly after the run.
+
+The result is still partial as public evidence: no phone, colleague device, or separate
+network validation was performed, and no auth, reconnect, laptop sleep, or long-duration
+behavior was tested.
+
+## What Was Tested
+
+| Path | URL type | Validation level | Result |
+| --- | --- | --- | --- |
+| Local Docker app | `127.0.0.1:18082` | local `curl`, Docker healthcheck, container inspection | passed |
+| Cloudflare Quick Tunnel | temporary `trycloudflare.com` HTTPS URL | local `curl` through the public URL | passed, then closed |
+| Tailscale Funnel | temporary public `ts.net` HTTPS URL | local `curl` through the public URL | passed, then closed |
+| Cloudflare Named Tunnel, deep hostname | `container-exposure-lab.labs.projectpezzos.com` | local `curl` through public HTTP and HTTPS URLs | HTTP passed; HTTPS failed at TLS handshake |
+| Cloudflare Named Tunnel, first-level hostname | `container-exposure-lab.projectpezzos.com` | local `curl` through public HTTP and HTTPS URLs | HTTPS passed, then tunnel closed |
+
+The app only exposes `/` and `/healthz`. The container uses no bind mount or host
+volume, binds the host port on `127.0.0.1`, runs as a non-root user, uses a read-only
+root filesystem, drops Linux capabilities, and has `no-new-privileges`.
+
+## What Was Not Tested
+
+- Access from a phone.
+- Access from another network.
+- Access by a colleague or another account.
+- Cloudflare Access or another auth layer.
+- Behavior after laptop sleep, network change, or a long-running session.
+- A durable recommendation between Cloudflare Tunnel, Tailscale Funnel, Traefik, or AWS.
+- HTTPS on `container-exposure-lab.labs.projectpezzos.com`; that deeper hostname failed
+  with the current Cloudflare edge certificate coverage.
+
+## What You Can Conclude
+
+- A Quick Tunnel can expose this minimal container over HTTPS for a short disposable
+  review and can be closed afterward.
+- Tailscale Funnel can expose the same container over HTTPS when Tailscale is already
+  running and authenticated, and can be closed afterward.
+- Cloudflare Named Tunnel with DNS worked over HTTPS on
+  `container-exposure-lab.projectpezzos.com`, a first-level hostname.
+- The deeper hostname `container-exposure-lab.labs.projectpezzos.com` is not a safe
+  default for HTTPS unless certificate coverage is handled first.
+- `cloudflared tunnel delete -f` removed the tunnel resource in this run but did not
+  remove the proxied DNS route. DNS cleanup needs an operator action.
+
+## What You Must Not Conclude
+
+- Do not treat public reachability as fully proven from arbitrary networks. The public
+  URLs were tested from the lab machine with `curl`.
+- Do not treat this as evidence for production hosting.
+- Do not assume these paths are secure for private data or write-capable services.
+- Do not assume Tailscale Funnel behavior after sleep, reconnect, or long sessions.
+- Do not assume Cloudflare Named Tunnel is operationally finished until the remaining
+  DNS record has been removed.
+
+## Full Trace
+
+The full audit trail is in [`RESULTATS.md`](./RESULTATS.md). It includes the test matrix,
+Claude gate records, commands, timestamps, URLs, validation output, failures, teardown,
+open questions, and article-impact caveats.
+
+Manual cleanup instructions are in [`OPERATEUR.md`](./OPERATEUR.md).
+
+## Reproduce Locally
+
+These commands only run the local container. They do not open a public tunnel or create
+DNS records.
 
 ```sh
 docker build .
@@ -23,34 +94,16 @@ docker compose up -d --build
 docker compose down
 ```
 
-## Safety Defaults
+## Final Public Resource State
 
-- No bind mounts or host volumes.
-- The compose port is bound to `127.0.0.1` only.
-- The container runs as the non-root `node` user.
-- The container is read-only and drops Linux capabilities.
-- The app does not read request bodies, environment dumps, local paths, or files.
-
-## Public Exposure
-
-Only expose after local checks pass and a Claude gate approves the exact command.
-
-Quick Tunnel command under review for this lab:
-
-```sh
-cloudflared tunnel --no-autoupdate --loglevel info --url http://127.0.0.1:18082
-```
-
-Stop the tunnel with `Ctrl-C` or by terminating the recorded `cloudflared` process.
-
-## Teardown
-
-```sh
-docker compose down
-```
-
-If the Named Tunnel/DNS branch leaves a DNS record behind, see
-[`OPERATEUR.md`](./OPERATEUR.md) before rerunning the lab.
+- Quick Tunnel: closed.
+- Tailscale Funnel: closed.
+- Cloudflare named tunnel: deleted.
+- Local tunnel credential files created by the lab: removed.
+- Docker container: stopped and removed.
+- DNS: `container-exposure-lab.projectpezzos.com` still resolves to Cloudflare edge IPs
+  and must be deleted manually in Cloudflare before rerunning the Named Tunnel/DNS
+  branch.
 
 The GitHub repo rollback command, if Alexandre explicitly approves deletion later:
 

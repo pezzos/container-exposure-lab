@@ -56,6 +56,8 @@
 - review_status: `approved`
 - reviewer: `claude-plan-review`
 - review_timestamp: `2026-05-20T04:46:50Z`
+- review_reason: `initial safety plan before creating the public repo, app, or any public exposure`
+- batch_review: `reviewed in the same initial Claude run as the GitHub repo creation plan`
 - reviewed_plan_summary: Minimal Node app, no dependency app code, Docker container on internal port `8080`, host port `127.0.0.1:18080`, no host volumes, read-only/non-root container, local validation before public exposure, Quick Tunnel before any named tunnel or DNS, no Tailscale daemon or tailnet changes without operator input.
 - blocking_findings: none
 - major_findings:
@@ -72,6 +74,8 @@
 - review_status: `approved`
 - reviewer: `claude-plan-review`
 - review_timestamp: `2026-05-20T04:46:50Z`
+- review_reason: `public GitHub repo creation under the required owner pezzos`
+- batch_review: `reviewed in the same initial Claude run as the safety plan`
 - reviewed_plan_summary: Create only `pezzos/container-exposure-lab` as a public repo with `gh repo create pezzos/container-exposure-lab --public --clone --description "Disposable lab for comparing temporary container exposure paths"` from `/Users/alexandrepezzotta/repos/PezzosLabs`, then add lab-only files and scan before commit.
 - blocking_findings: none
 - major_findings: none
@@ -86,12 +90,15 @@
 
 ## Claude Gate: Host Port Change
 
-- review_status: `approved_with_required_changes`
+- review_status: `approved`
 - reviewer: `claude-plan-review`
 - review_timestamp: `2026-05-20T04:46:50Z`
+- review_reason: `host port change after local port 18080 conflict`
+- timestamp_note: `historical execution record kept this timestamp for the port-change gate; no separate Claude transcript with a different timestamp is present in this repo, so no later timestamp is invented here`
 - reviewed_plan_summary: Change the lab host port from `127.0.0.1:18080` to `127.0.0.1:18082` because `18080` is occupied by an unrelated existing resource. Keep container port `8080` and all Docker hardening unchanged. Re-run local validation before any Quick Tunnel gate.
-- blocking_findings:
+- required_changes:
   - `scripts/check-local.sh` must also change its default URL to `http://127.0.0.1:18082` to avoid false positive checks against the unrelated service on `18080`.
+- blocking_findings: none after applying the required change.
 - major_findings: none
 - decisions:
   - Updated README, compose.yaml, `scripts/check-local.sh`, and this results file to use `127.0.0.1:18082`.
@@ -127,17 +134,19 @@
 
 ## Cloudflare Quick Tunnel
 
-- claude_gate: `approved`
-- claude_gate_reviewer: `claude-plan-review`
-- claude_gate_timestamp: `2026-05-20T04:46:50Z`
-- claude_gate_summary: Claude approved the exact Quick Tunnel command after reviewing the local app surface, Docker hardening, loopback-only host binding, info log level, no DNS creation, and process teardown plan.
-- claude_gate_findings:
+- review_status: `approved`
+- reviewer: `claude-plan-review`
+- review_timestamp: `2026-05-20T04:46:50Z`
+- review_reason: `Cloudflare Quick Tunnel public exposure command and teardown`
+- reviewed_plan_summary: Claude approved the exact Quick Tunnel command after reviewing the local app surface, Docker hardening, loopback-only host binding, info log level, no DNS creation, and process teardown plan.
+- claude_findings:
   - blocking: none
   - major: none
   - minor: teardown verification may be inconclusive from local loopback only; external test should be attempted if available, otherwise record why not.
 - command: `cloudflared tunnel --no-autoupdate --loglevel info --url http://127.0.0.1:18082`
 - opened_at_utc: `2026-05-20T04:54:07Z`
 - url: `https://henderson-council-photograph-sum.trycloudflare.com`
+- validation_level: `local curl from the lab machine through the public HTTPS URL; no phone, colleague device, or separate-network test`
 - local_public_url_test: `passed`
   - `curl -i -fsS https://henderson-council-photograph-sum.trycloudflare.com/healthz` returned HTTP/2 `200` with `{"ok":true,"service":"container-exposure-lab"}`.
   - `curl -i -fsS https://henderson-council-photograph-sum.trycloudflare.com/` returned HTTP/2 `200` with the neutral HTML lab page.
@@ -155,10 +164,12 @@
 
 - status: `tested-http-only-and-needs-dns-cleanup`
 - prior_blocker: Quick Tunnel worked, but named tunnel/DNS required Cloudflare named-tunnel credentials. Alexandre later authenticated `cloudflared`, and `~/.cloudflared/cert.pem` existed.
-- claude_gate: `approved`
-- claude_gate_reviewer: `claude-plan-review`
-- claude_gate_timestamp: `2026-05-20T09:00:00Z`
-- claude_gate_summary: Claude approved creating exactly one named tunnel and one DNS route for `container-exposure-lab.labs.projectpezzos.com`, after a public DNS snapshot showed no records on the target, parent, or requested wildcard names. Claude incorrectly asserted that `cloudflared tunnel delete -f` would remove the DNS dependency; the later teardown disproved that in this run.
+- review_status: `approved`
+- reviewer: `claude-plan-review`
+- review_timestamp: `2026-05-20T07:00:00Z`
+- review_reason: `Cloudflare named tunnel creation plus DNS write for the originally approved deep hostname`
+- timestamp_note: `normalized from the original local-time execution note before the tunnel opened at 2026-05-20T07:07:42Z; exact seconds were not preserved in this repo`
+- reviewed_plan_summary: Claude approved creating exactly one named tunnel and one DNS route for `container-exposure-lab.labs.projectpezzos.com`, after a public DNS snapshot showed no records on the target, parent, or requested wildcard names. Claude incorrectly asserted that `cloudflared tunnel delete -f` would remove the DNS dependency; the later teardown disproved that in this run.
 - public_dns_snapshot_before_write:
   - `container-exposure-lab.labs.projectpezzos.com`: no public CNAME/A/AAAA/TXT records observed.
   - `labs.projectpezzos.com`: no public CNAME/A/AAAA/TXT records observed.
@@ -171,6 +182,7 @@
 - run_command: `cloudflared tunnel --no-autoupdate --loglevel info run --url http://127.0.0.1:18082 container-exposure-lab`
 - run_pid: `43416`
 - opened_at_utc: `2026-05-20T07:07:42Z`
+- validation_level: `local curl from the lab machine through the public custom hostname; no phone, colleague device, or separate-network test`
 - http_custom_hostname_test: `passed`; `curl http://container-exposure-lab.labs.projectpezzos.com/healthz` returned HTTP `200` and `{"ok":true,"service":"container-exposure-lab"}`.
 - https_custom_hostname_test: `failed`; `curl https://container-exposure-lab.labs.projectpezzos.com/healthz` failed TLS handshake with `sslv3 alert handshake failure`.
 - likely_https_cause: Cloudflare Universal SSL in a full setup covers the zone apex and first-level subdomains, but not deeper hostnames like `container-exposure-lab.labs.projectpezzos.com`. This needs Total TLS, an advanced certificate covering `*.labs.projectpezzos.com` or the exact hostname, or a first-level hostname explicitly approved for the lab.
@@ -191,16 +203,17 @@
 - reason_for_retry: Alexandre deleted the previous deep-hostname DNS route and approved
   the first-level hostname `container-exposure-lab.projectpezzos.com` after the HTTPS
   failure on `container-exposure-lab.labs.projectpezzos.com`.
-- claude_gate: `approved`
-- claude_gate_reviewer: `claude-plan-review`
-- claude_gate_timestamp: `2026-05-20T07:29:00Z`
-- claude_gate_summary: Claude approved creating exactly one named tunnel and one DNS
+- review_status: `approved`
+- reviewer: `claude-plan-review`
+- review_timestamp: `2026-05-20T07:29:00Z`
+- review_reason: `Cloudflare named tunnel and DNS retry after approved hostname change to first-level hostname`
+- reviewed_plan_summary: Claude approved creating exactly one named tunnel and one DNS
   route for `container-exposure-lab.projectpezzos.com`. Claude noted that the first-level
   hostname should be covered by the zone's normal Cloudflare edge certificate coverage,
   and raised a major cleanup finding: DNS deletion would probably still need manual
   operator action because the prior run proved that `cloudflared tunnel delete -f` did
   not remove the DNS route.
-- claude_gate_findings:
+- claude_findings:
   - blocking: none
   - major: DNS cleanup likely requires manual operator action if the Cloudflare
     dashboard/API record remains after tunnel deletion.
@@ -220,6 +233,7 @@
 - run_command: `cloudflared tunnel --no-autoupdate --loglevel info run --url http://127.0.0.1:18082 container-exposure-lab`
 - run_pid: `61481`
 - opened_at_utc: `2026-05-20T07:30:19Z`
+- validation_level: `local curl from the lab machine through the public custom HTTPS URL; no phone, colleague device, or separate-network test`
 - https_healthz_test: `passed`; `curl https://container-exposure-lab.projectpezzos.com/healthz` returned HTTP `200`, TLS verification result `0`, and `{"ok":true,"service":"container-exposure-lab"}`.
 - https_page_test: `passed`; `curl https://container-exposure-lab.projectpezzos.com/`
   returned HTTP `200`, TLS verification result `0`, and the neutral HTML lab page.
@@ -258,14 +272,16 @@
 - preflight_before_test:
   - `tailscale status --json` summary: `BackendState=Running`, self online, MagicDNS suffix present, current tailnet present.
   - `tailscale funnel status --json` returned `{}`, so no active Funnel was observed before this test.
-- claude_gate: `approved`
-- claude_gate_reviewer: `claude-plan-review`
-- claude_gate_timestamp: `2026-05-20T06:47:58Z`
-- claude_gate_summary: Claude approved opening Tailscale Funnel for the already validated disposable app on `localhost:18082`, with mandatory teardown and status/curl verification.
+- review_status: `approved`
+- reviewer: `claude-plan-review`
+- review_timestamp: `2026-05-20T06:47:58Z`
+- review_reason: `Tailscale Funnel public exposure command and teardown after operator authenticated Tailscale`
+- reviewed_plan_summary: Claude approved opening Tailscale Funnel for the already validated disposable app on `localhost:18082`, with mandatory teardown and status/curl verification.
 - command: `tailscale funnel localhost:18082`
 - opened_at_utc: `2026-05-20T06:47:58Z`
 - url: `https://macbook-pro-de-alexandre.tailfe0530.ts.net/`
 - status_observed: `tailscale funnel status --json` showed an HTTPS Funnel on port `443` proxying `/` to `http://localhost:18082`.
+- validation_level: `local curl from the lab machine through the public HTTPS URL; no phone, colleague device, or separate-network test`
 - public_url_test: `passed`
   - `curl https://macbook-pro-de-alexandre.tailfe0530.ts.net/healthz` returned HTTP `200`, TLS verification result `0`, and `{"ok":true,"service":"container-exposure-lab"}`.
   - `curl https://macbook-pro-de-alexandre.tailfe0530.ts.net/` returned HTTP `200`, TLS verification result `0`, and the neutral HTML lab page.
@@ -283,8 +299,10 @@
   reconnect, and long-duration behavior. Quick Tunnel and Tailscale Funnel were tested
   successfully for a disposable local container and both were closed. Named Tunnel/DNS
   first proved HTTP on the deep hostname and then proved HTTPS on the approved
-  first-level hostname `container-exposure-lab.projectpezzos.com`. The first-level DNS
-  record still needs operator cleanup.
+  first-level hostname `container-exposure-lab.projectpezzos.com`. The verified
+  reachability evidence is local `curl` from the lab machine through public URLs, not a
+  phone, colleague-device, or separate-network test. The first-level DNS record still
+  needs operator cleanup.
 
 ## Open Resources
 
