@@ -8,7 +8,8 @@ Disposable lab for testing temporary exposure of a minimal containerized HTTP ap
 - Local app port: `127.0.0.1:18082`
 - Container port: `8080`
 - Cloudflare first path: Quick Tunnel with a temporary `trycloudflare.com` URL
-- Optional custom hostname: `container-exposure-lab.labs.projectpezzos.com`
+- Custom hostname tested successfully over HTTPS:
+  `container-exposure-lab.projectpezzos.com`
 
 This repo must not contain credentials, personal data, host bind mounts, projectpezzos.com
 production deploy logic, or access to the parent repository.

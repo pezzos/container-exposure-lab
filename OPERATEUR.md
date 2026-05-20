@@ -6,36 +6,34 @@ This lab created one Cloudflare DNS route that still needs manual cleanup.
 
 In the Cloudflare dashboard for `projectpezzos.com`, delete the DNS record:
 
-- name: `container-exposure-lab.labs.projectpezzos.com`
+- name: `container-exposure-lab.projectpezzos.com`
 - expected type: proxied CNAME or tunnel route
-- expected target: `41e8e08a-d2be-4cab-92f5-968ccfecdac0.cfargotunnel.com`
+- expected target: `35d43b87-932b-4a32-8798-432c666a6e45.cfargotunnel.com`
 
 Do not delete any other record.
 
 After deletion, verify:
 
 ```sh
-dig +short A container-exposure-lab.labs.projectpezzos.com
-dig +short AAAA container-exposure-lab.labs.projectpezzos.com
-curl -I --max-time 15 http://container-exposure-lab.labs.projectpezzos.com/healthz
+dig +short A container-exposure-lab.projectpezzos.com
+dig +short AAAA container-exposure-lab.projectpezzos.com
+curl -I --max-time 15 http://container-exposure-lab.projectpezzos.com/healthz
 ```
 
 Expected result: no Cloudflare edge IPs for the hostname, or at least no response from
 the lab app.
 
-## Complete The HTTPS Custom Hostname Test
+## HTTPS Custom Hostname Result
 
-The HTTP custom hostname test worked, but HTTPS failed with a TLS handshake error.
-Cloudflare Universal SSL on a full setup covers the apex and first-level subdomains, not
-deeper hostnames such as `container-exposure-lab.labs.projectpezzos.com`.
+The deep hostname `container-exposure-lab.labs.projectpezzos.com` served HTTP through the
+Named Tunnel but failed HTTPS with a TLS handshake error. Alexandre then approved the
+first-level hostname `container-exposure-lab.projectpezzos.com`.
 
-Choose one path before rerunning this branch:
+The first-level hostname test is complete:
 
-1. Enable Total TLS or create an advanced certificate covering
-   `container-exposure-lab.labs.projectpezzos.com` or `*.labs.projectpezzos.com`.
-2. Authorize a first-level lab hostname such as
-   `container-exposure-lab.projectpezzos.com`, then repeat the DNS snapshot and Claude
-   gate for that changed hostname before creating any record.
+- `https://container-exposure-lab.projectpezzos.com/healthz` returned HTTP `200`.
+- TLS verification result was `0`.
+- The tunnel, connector process, local credential file, Tailscale Funnel, and Docker
+  container are closed.
 
 Do not rerun the Named Tunnel/DNS branch until the cleanup above is complete.
-
