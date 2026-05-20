@@ -101,35 +101,52 @@
 
 ## Cloudflare Quick Tunnel
 
-- claude_gate: `not-run-yet`
+- claude_gate: `approved`
+- claude_gate_reviewer: `claude-plan-review`
+- claude_gate_timestamp: `2026-05-20T04:46:50Z`
+- claude_gate_summary: Claude approved the exact Quick Tunnel command after reviewing the local app surface, Docker hardening, loopback-only host binding, info log level, no DNS creation, and process teardown plan.
+- claude_gate_findings:
+  - blocking: none
+  - major: none
+  - minor: teardown verification may be inconclusive from local loopback only; external test should be attempted if available, otherwise record why not.
 - command: `cloudflared tunnel --no-autoupdate --loglevel info --url http://127.0.0.1:18082`
-- url: `not-opened`
-- local_public_url_test: `not-run-yet`
-- external_test: `not-run-yet`
+- opened_at_utc: `2026-05-20T04:54:07Z`
+- url: `https://henderson-council-photograph-sum.trycloudflare.com`
+- local_public_url_test: `passed`
+  - `curl -i -fsS https://henderson-council-photograph-sum.trycloudflare.com/healthz` returned HTTP/2 `200` with `{"ok":true,"service":"container-exposure-lab"}`.
+  - `curl -i -fsS https://henderson-council-photograph-sum.trycloudflare.com/` returned HTTP/2 `200` with the neutral HTML lab page.
+- https_behavior: Cloudflare HTTPS endpoint, HTTP/2 `200`, `cf-cache-status: DYNAMIC`, `cache-control: no-store`.
+- external_test: `external-test-not-performed: available web fetch tool could not open this generated arbitrary URL directly; local curl through the public HTTPS URL was performed instead.`
 - teardown_command: `terminate recorded cloudflared process`
-- final_state: `not-opened`
+- teardown_performed_at_utc: `2026-05-20T04:55:35Z`
+- teardown_method: `kill -TERM 62675`, targeting only `cloudflared tunnel --no-autoupdate --loglevel info --url http://127.0.0.1:18082`.
+- post_teardown_process_check: `passed`; no `cloudflared tunnel ... 127.0.0.1:18082` process remained.
+- post_teardown_url_check: `passed`; curl to `/healthz` returned exit `56` with Cloudflare HTTP `530`, not the lab app.
+- final_state: `closed`
 - dns_created: `none`
 
 ## Cloudflare Named Tunnel And DNS
 
-- status: `not-attempted`
-- reason: Must wait for successful Quick Tunnel and separate Claude/DNS gate. Current preflight also lacks a local Cloudflare origin certificate for named tunnel operations.
+- status: `blocked`
+- reason: Quick Tunnel worked, but named tunnel/DNS would require Cloudflare named-tunnel credentials. `cloudflared tunnel list -o json` reported no default origin certificate at the expected local paths.
+- action_taken: none; no `cloudflared tunnel login`, no named tunnel creation, no DNS snapshot, no DNS write.
 - allowed_hostname: `container-exposure-lab.labs.projectpezzos.com`
 
 ## Tailscale Funnel
 
-- status: `not-attempted`
+- status: `blocked`
 - current_blocker: `tailscale: needs-operator-input: local tailscaled daemon is not running`
-- action_taken: none
+- action_taken: none; did not start Tailscale, did not change tailnet policy, did not enable Funnel.
 
 ## Article Impact
 
-- status: `not-ready`
-- recommendation: Do not update article conclusions until at least Quick Tunnel is tested and teardown is recorded.
+- status: `draft update possible`
+- recommendation: Comparison must be marked partial. Quick Tunnel was tested successfully for a disposable local container. Named Tunnel/DNS and Tailscale Funnel were blocked by local account/daemon prerequisites and should not be described as tested.
 
 ## Open Resources
 
-- public_urls: none
-- cloudflare_tunnels: none opened by this lab yet
+- public_urls: none; the temporary Quick Tunnel URL is closed.
+- cloudflare_tunnels: none currently open; one Quick Tunnel was opened and closed.
 - dns_records: none created by this lab
 - tailscale_funnel: none
+- docker_containers: none running for this lab after `docker compose down`.
