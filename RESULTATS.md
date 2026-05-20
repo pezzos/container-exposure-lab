@@ -8,7 +8,7 @@
 - local_path: `/Users/alexandrepezzotta/repos/PezzosLabs/container-exposure-lab`
 - started_at_utc: `2026-05-20T04:46:50Z`
 - production_deploy: `not-performed`
-- public_resources_open: `none-yet`
+- public_resources_open: `none`
 
 ## Preflight
 
@@ -21,7 +21,7 @@
 - docker_daemon: available, server `29.2.1`, OS `Ubuntu 24.04.4 LTS`
 - cloudflared: available, version `2026.5.0`
 - tailscale_cli: available, version `1.98.2`
-- tailscale_daemon: `not-running`
+- tailscale_daemon: initially `not-running`; later operator started and authenticated Tailscale, and `tailscale status --json` showed `BackendState: Running`, self online, MagicDNS suffix present.
 - cloudflare_named_tunnel_auth: `blocked-preflight`; `cloudflared tunnel list` reported no origin certificate.
 - wrangler: `not-required-for-this-lab`; Cloudflare Tunnel uses `cloudflared`.
 
@@ -134,19 +134,39 @@
 
 ## Tailscale Funnel
 
-- status: `blocked`
-- current_blocker: `tailscale: needs-operator-input: local tailscaled daemon is not running`
-- action_taken: none; did not start Tailscale, did not change tailnet policy, did not enable Funnel.
+- status: `tested-and-closed`
+- prior_blocker: `tailscale: needs-operator-input: local tailscaled daemon is not running`
+- unblock_event: Operator installed/authenticated Tailscale and confirmed they started and stopped Funnel for `localhost:18082`; subsequent preflight showed the local Tailscale daemon running.
+- preflight_before_test:
+  - `tailscale status --json` summary: `BackendState=Running`, self online, MagicDNS suffix present, current tailnet present.
+  - `tailscale funnel status --json` returned `{}`, so no active Funnel was observed before this test.
+- claude_gate: `approved`
+- claude_gate_reviewer: `claude-plan-review`
+- claude_gate_timestamp: `2026-05-20T06:47:58Z`
+- claude_gate_summary: Claude approved opening Tailscale Funnel for the already validated disposable app on `localhost:18082`, with mandatory teardown and status/curl verification.
+- command: `tailscale funnel localhost:18082`
+- opened_at_utc: `2026-05-20T06:47:58Z`
+- url: `https://macbook-pro-de-alexandre.tailfe0530.ts.net/`
+- status_observed: `tailscale funnel status --json` showed an HTTPS Funnel on port `443` proxying `/` to `http://localhost:18082`.
+- public_url_test: `passed`
+  - `curl https://macbook-pro-de-alexandre.tailfe0530.ts.net/healthz` returned HTTP `200`, TLS verification result `0`, and `{"ok":true,"service":"container-exposure-lab"}`.
+  - `curl https://macbook-pro-de-alexandre.tailfe0530.ts.net/` returned HTTP `200`, TLS verification result `0`, and the neutral HTML lab page.
+- external_test: `external-test-not-performed: available web fetch tool could not open this generated arbitrary URL directly; local curl through the public HTTPS URL was performed instead.`
+- teardown_performed_at_utc: `2026-05-20T06:49:22Z`
+- teardown_method: `kill -TERM 19021`, targeting only `tailscale funnel localhost:18082`.
+- post_teardown_status_check: `passed`; `tailscale funnel status --json` returned `{}`.
+- post_teardown_url_check: `passed`; curl to `/healthz` timed out with HTTP `000` and exit `28`, not the lab app.
+- final_state: `closed`
 
 ## Article Impact
 
 - status: `draft update possible`
-- recommendation: Comparison must be marked partial. Quick Tunnel was tested successfully for a disposable local container. Named Tunnel/DNS and Tailscale Funnel were blocked by local account/daemon prerequisites and should not be described as tested.
+- recommendation: Comparison must be marked partial. Quick Tunnel and Tailscale Funnel were tested successfully for a disposable local container and both were closed. Named Tunnel/DNS remains blocked by local Cloudflare named-tunnel prerequisites and should not be described as tested.
 
 ## Open Resources
 
 - public_urls: none; the temporary Quick Tunnel URL is closed.
 - cloudflare_tunnels: none currently open; one Quick Tunnel was opened and closed.
 - dns_records: none created by this lab
-- tailscale_funnel: none
-- docker_containers: none running for this lab after `docker compose down`.
+- tailscale_funnel: none currently open; one Funnel was opened and closed.
+- docker_containers: none running for this lab after final `docker compose down`.
