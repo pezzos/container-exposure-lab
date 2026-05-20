@@ -3,12 +3,39 @@
 ## Lab Metadata
 
 - lab: `container-exposure-lab`
+- completion_status: `partial-needs-operator-input`
 - repo: `https://github.com/pezzos/container-exposure-lab`
 - owner: `pezzos`
 - local_path: `/Users/alexandrepezzotta/repos/PezzosLabs/container-exposure-lab`
 - started_at_utc: `2026-05-20T04:46:50Z`
 - production_deploy: `not-performed`
-- public_resources_open: `none`
+- public_resources_open: `dns-record-needs-operator-removal`
+
+## Test Matrix
+
+| Branch | Status | Evidence | Remaining action |
+| --- | --- | --- | --- |
+| Local Docker app | done | `/healthz` and `/` passed on `127.0.0.1:18082`; container hardening inspected. | none |
+| Cloudflare Quick Tunnel | done | Temporary `trycloudflare.com` URL returned HTTP/2 200 and was closed. | none |
+| Tailscale Funnel | done | Temporary public `ts.net` Funnel URL returned HTTP 200 and was closed. | none |
+| Cloudflare Named Tunnel HTTP | done | `http://container-exposure-lab.labs.projectpezzos.com/healthz` returned HTTP 200 through the named tunnel. | none for HTTP |
+| Cloudflare Named Tunnel HTTPS | blocked | `https://container-exposure-lab.labs.projectpezzos.com/healthz` failed TLS handshake. | Fix Cloudflare edge certificate coverage for the deep hostname, or approve a first-level hostname and rerun the DNS gate. |
+| DNS teardown | needs-operator-input | Tunnel was deleted, but the hostname still resolves to Cloudflare edge IPs and returns Cloudflare `1033`. | Delete the DNS route in the Cloudflare dashboard/API. |
+| Phone/external validation | not-run | Local curl through public URLs was performed; no separate phone/mobile vantage was used. | Test from phone or another network after HTTPS custom-hostname path is fixed. |
+
+## Not Completed
+
+- HTTPS on `container-exposure-lab.labs.projectpezzos.com`: blocked by Cloudflare edge
+  certificate coverage for this deeper hostname. Minimum completion action: enable Total
+  TLS/advanced certificate coverage for the exact hostname or `*.labs.projectpezzos.com`,
+  or approve a first-level hostname such as `container-exposure-lab.projectpezzos.com`
+  and rerun the DNS snapshot plus Claude gate.
+- DNS cleanup: `cloudflared tunnel delete -f container-exposure-lab` deleted the tunnel
+  but did not remove the proxied DNS route in this run. Minimum completion action:
+  delete the `container-exposure-lab.labs.projectpezzos.com` DNS record in Cloudflare.
+- Phone/mobile validation: not performed. Minimum completion action: after DNS cleanup
+  and certificate coverage are fixed, rerun the chosen public exposure and test from a
+  phone or separate network.
 
 ## Preflight
 
@@ -127,9 +154,36 @@
 
 ## Cloudflare Named Tunnel And DNS
 
-- status: `blocked`
-- reason: Quick Tunnel worked, but named tunnel/DNS would require Cloudflare named-tunnel credentials. `cloudflared tunnel list -o json` reported no default origin certificate at the expected local paths.
-- action_taken: none; no `cloudflared tunnel login`, no named tunnel creation, no DNS snapshot, no DNS write.
+- status: `tested-http-only-and-needs-dns-cleanup`
+- prior_blocker: Quick Tunnel worked, but named tunnel/DNS required Cloudflare named-tunnel credentials. Alexandre later authenticated `cloudflared`, and `~/.cloudflared/cert.pem` existed.
+- claude_gate: `approved`
+- claude_gate_reviewer: `claude-plan-review`
+- claude_gate_timestamp: `2026-05-20T09:00:00Z`
+- claude_gate_summary: Claude approved creating exactly one named tunnel and one DNS route for `container-exposure-lab.labs.projectpezzos.com`, after a public DNS snapshot showed no records on the target, parent, or requested wildcard names. Claude incorrectly asserted that `cloudflared tunnel delete -f` would remove the DNS dependency; the later teardown disproved that in this run.
+- public_dns_snapshot_before_write:
+  - `container-exposure-lab.labs.projectpezzos.com`: no public CNAME/A/AAAA/TXT records observed.
+  - `labs.projectpezzos.com`: no public CNAME/A/AAAA/TXT records observed.
+  - `*.labs.projectpezzos.com`: no public CNAME/A/AAAA/TXT records observed.
+  - `*.projectpezzos.com`: no public CNAME/A/AAAA/TXT records observed.
+- tunnel_create_command: `cloudflared tunnel create container-exposure-lab`
+- tunnel_id: `41e8e08a-d2be-4cab-92f5-968ccfecdac0`
+- dns_route_command: `cloudflared tunnel route dns container-exposure-lab container-exposure-lab.labs.projectpezzos.com`
+- dns_route_result: CNAME route added for `container-exposure-lab.labs.projectpezzos.com` to tunnel `41e8e08a-d2be-4cab-92f5-968ccfecdac0`.
+- run_command: `cloudflared tunnel --no-autoupdate --loglevel info run --url http://127.0.0.1:18082 container-exposure-lab`
+- run_pid: `43416`
+- opened_at_utc: `2026-05-20T07:07:42Z`
+- http_custom_hostname_test: `passed`; `curl http://container-exposure-lab.labs.projectpezzos.com/healthz` returned HTTP `200` and `{"ok":true,"service":"container-exposure-lab"}`.
+- https_custom_hostname_test: `failed`; `curl https://container-exposure-lab.labs.projectpezzos.com/healthz` failed TLS handshake with `sslv3 alert handshake failure`.
+- likely_https_cause: Cloudflare Universal SSL in a full setup covers the zone apex and first-level subdomains, but not deeper hostnames like `container-exposure-lab.labs.projectpezzos.com`. This needs Total TLS, an advanced certificate covering `*.labs.projectpezzos.com` or the exact hostname, or a first-level hostname explicitly approved for the lab.
+- teardown_performed_at_utc: `2026-05-20T07:10:28Z`
+- teardown_method:
+  - stopped PID `43416` for the named tunnel connector.
+  - ran `cloudflared tunnel delete -f container-exposure-lab`.
+  - removed local lab-created credential file `~/.cloudflared/41e8e08a-d2be-4cab-92f5-968ccfecdac0.json`.
+- post_teardown_tunnel_check: `passed`; `cloudflared tunnel list -o json` returned `null`.
+- post_teardown_app_check: `passed`; hostname returned Cloudflare error `1033` / HTTP `530`, not the lab app.
+- post_teardown_dns_check: `needs-operator-input`; after more than 60 seconds, `dig +short A/AAAA container-exposure-lab.labs.projectpezzos.com` still returned Cloudflare edge IPs. `cloudflared` exposes no DNS-route delete command.
+- required_operator_cleanup: Delete the Cloudflare DNS record for `container-exposure-lab.labs.projectpezzos.com` that was created by this lab. It should be a proxied CNAME route to `41e8e08a-d2be-4cab-92f5-968ccfecdac0.cfargotunnel.com` or an equivalent tunnel route record in the Cloudflare dashboard/API.
 - allowed_hostname: `container-exposure-lab.labs.projectpezzos.com`
 
 ## Tailscale Funnel
@@ -161,12 +215,12 @@
 ## Article Impact
 
 - status: `draft update possible`
-- recommendation: Comparison must be marked partial. Quick Tunnel and Tailscale Funnel were tested successfully for a disposable local container and both were closed. Named Tunnel/DNS remains blocked by local Cloudflare named-tunnel prerequisites and should not be described as tested.
+- recommendation: Comparison must be marked partial. Quick Tunnel and Tailscale Funnel were tested successfully for a disposable local container and both were closed. Named Tunnel/DNS served HTTP on the custom hostname, but HTTPS failed because the deep hostname is not covered by the current Cloudflare edge certificate setup. The DNS record still needs operator cleanup.
 
 ## Open Resources
 
 - public_urls: none; the temporary Quick Tunnel URL is closed.
 - cloudflare_tunnels: none currently open; one Quick Tunnel was opened and closed.
-- dns_records: none created by this lab
+- dns_records: `container-exposure-lab.labs.projectpezzos.com` still resolves to Cloudflare edge IPs and needs operator removal.
 - tailscale_funnel: none currently open; one Funnel was opened and closed.
 - docker_containers: none running for this lab after final `docker compose down`.

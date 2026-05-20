@@ -48,6 +48,9 @@ Stop the tunnel with `Ctrl-C` or by terminating the recorded `cloudflared` proce
 docker compose down
 ```
 
+If the Named Tunnel/DNS branch leaves a DNS record behind, see
+[`OPERATEUR.md`](./OPERATEUR.md) before rerunning the lab.
+
 The GitHub repo rollback command, if Alexandre explicitly approves deletion later:
 
 ```sh
